@@ -8,7 +8,7 @@ idf_component_register(SRCS "main.cpp" "app_events.cpp" "app_event_loop.cpp" "Co
                     msgpack-c json loggable loggable_espidf esp_wifi dns_server esp_driver_gpio nvs_sec_provider)
 
 if(CONFIG_IDF_TARGET_ESP32S3)
-    target_sources(${COMPONENT_LIB} PRIVATE "PasskeyUsb.cpp")
+    target_sources(${COMPONENT_LIB} PRIVATE "PasskeyUsb.cpp" "Ctaphid.cpp")
 endif()
 
 if(CONFIG_NVS_SEC_KEY_PROTECT_USING_FLASH_ENC)

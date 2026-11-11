@@ -2,6 +2,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/task.h"
 #include "tinyusb.h"
 #include "tinyusb_default_config.h"
 #include "tusb.h"
@@ -67,5 +68,12 @@ bool PasskeyUsb::receive(Report& report) {
 }
 
 bool PasskeyUsb::send(const Report& report) {
+    const TickType_t started = xTaskGetTickCount();
+    while (tud_mounted() && !tud_hid_ready()) {
+        if (xTaskGetTickCount() - started >= pdMS_TO_TICKS(100)) {
+            return false;
+        }
+        vTaskDelay(1);
+    }
     return tud_hid_ready() && tud_hid_report(0, report.data(), report.size());
 }

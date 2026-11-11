@@ -1,4 +1,5 @@
 #include "NfcManager.hpp"
+#include "PasskeyGate.h"
 #include "ReaderDataManager.hpp"
 #include "ddk/homekey/ProfileFactory.h"
 #include "ddk/session/AuthOutcome.h"
@@ -408,13 +409,13 @@ void NfcManager::waitForTagRemoval() {
  * reset the consumed precomputed session (rebuilt by the polling task).
  */
 void NfcManager::handleHomeKeyAuth(const std::vector<uint8_t>& select_response) {
+    const auto passkeyTicket = passkeyGate.pendingRequest();
     auto publishAuthResult = [](
         const ddk::AuthOutcome& authResult,
         const std::vector<uint8_t>& readerId
     ) {
         if (authResult.state != ddk::FlowState::Failed) {
             ESP_LOGI(TAG, "HomeKey authentication successful!");
-			ESP_LOGI(TAG, "PASSKEY: Home Key authenticated");
             EventHKTap s{.status = true, .issuerId = authResult.issuer->id, .endpointId = authResult.endpoint->id, .readerId = readerId };
             std::vector<uint8_t> d;
             alpaca::serialize(s, d);
@@ -448,6 +449,9 @@ void NfcManager::handleHomeKeyAuth(const std::vector<uint8_t>& select_response) 
 
         auto outcome = profile.finalize(session);
         if (outcome) {
+            if (state == ddk::FlowState::Done && outcome.issuer && outcome.endpoint) {
+                passkeyGate.approve(passkeyTicket);
+            }
             ESP_LOGI(TAG, "Endpoint authenticated in %lli ms", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime).count());
             publishAuthResult(outcome, m_readerDataManager.reader_identity().sub_identifier);
             profile.control_flow(session, 0x01, 0x00);

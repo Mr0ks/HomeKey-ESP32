@@ -4,12 +4,8 @@
 #include "LockManager.hpp"
 #include "HardwareManager.hpp"
 #include "eventStructs.hpp"
-#include "PasskeyGate.h"
 
 const char* LockManager::TAG = "LockManager";
-
-// Shared prototype gate; not yet connected to a FIDO2 request.
-static PasskeyGate passkeyGate;
 
 /**
  * @brief Initialize a LockManager with configuration and wire its event handlers.
@@ -93,9 +89,6 @@ void LockManager::begin() {
         EventHKTap s = alpaca::deserialize<EventHKTap>(nfc_event.data, ec);
         if (!ec) {
           if (s.status) {
-            ESP_LOGI(TAG, "PASSKEY: Authenticated Home Key event received");
-            passkeyGate.onHomeKeyAuthenticated(
-                static_cast<uint32_t>(esp_timer_get_time() / 1000ULL));
             if (m_miscConfig.lockAlwaysUnlock) {
               setTargetState(lockStates::UNLOCKED, Source::NFC);
             } else if (m_miscConfig.lockAlwaysLock) {

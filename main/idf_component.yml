@@ -5,6 +5,7 @@ dependencies:
   joltwallet/littlefs: ^1.20.1
   espp/serialization: ^1.0.22
   espressif/keyboard_button: ^1.0.0
+  espressif/cbor: '~0.6.1'
   espressif/esp_tinyusb:
     version: "==3.0.0"
     rules:

@@ -8,6 +8,9 @@
 #include "HomeKitLock.hpp"
 #include "LockManager.hpp"
 #include "NfcManager.hpp"
+#if CONFIG_IDF_TARGET_ESP32S3
+#include "PasskeyAuthenticator.hpp"
+#endif
 #include "ConfigManager.hpp"
 #include "ReaderDataManager.hpp"
 #include "HardwareManager.hpp"
@@ -217,6 +220,11 @@ void setup() {
                               miscConfig.hkAuthPrecomputeEnabled,
                               miscConfig.nfcFastPollingEnabled);
   nfcManager->begin();
+#if CONFIG_IDF_TARGET_ESP32S3
+  if (!PasskeyAuthenticator::begin()) {
+    ESP_LOGE("Passkey", "Could not start USB authenticator");
+  }
+#endif
 
   webServerManager.setNfcManager(nfcManager.get());
   webServerManager.setMqttManager(mqttManager.get());

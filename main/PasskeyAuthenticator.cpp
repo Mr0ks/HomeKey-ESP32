@@ -7,10 +7,10 @@
 #include "freertos/task.h"
 #include "nvs.h"
 #include "mbedtls/aes.h"
-#include "mbedtls/constant_time.h"
 #include "mbedtls/md.h"
 #include "mbedtls/platform_util.h"
 #include "psa/crypto.h"
+#include "sodium/utils.h"
 
 #include <algorithm>
 #include <array>
@@ -277,7 +277,7 @@ bool pinMac(Bytes key, Bytes message, Bytes expected) {
     const bool ok = expected.size() == 16 &&
         mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), key.data(),
                         key.size(), message.data(), message.size(), mac.data()) == 0 &&
-        mbedtls_ct_memcmp(mac.data(), expected.data(), expected.size()) == 0;
+        sodium_memcmp(mac.data(), expected.data(), expected.size()) == 0;
     mbedtls_platform_zeroize(mac.data(), mac.size());
     return ok;
 }
@@ -304,7 +304,7 @@ uint8_t verifyPin(const std::array<uint8_t, 32>& shared, Bytes encrypted) {
     if (!persistPin(next)) return internalError;
     std::array<uint8_t, 16> candidate{};
     const bool valid = pinCrypt(shared, encrypted, candidate.data(), false) &&
-        mbedtls_ct_memcmp(candidate.data(), pinState.digest.data(), candidate.size()) == 0;
+        sodium_memcmp(candidate.data(), pinState.digest.data(), candidate.size()) == 0;
     mbedtls_platform_zeroize(candidate.data(), candidate.size());
     if (!valid) {
         ++sessionFailures;

@@ -1,17 +1,13 @@
-
 #pragma once
 
-#include <stdint.h>
-#include <stddef.h>
+#include <array>
+#include <cstdint>
 
 class PasskeyUsb {
 public:
-    bool begin();
-    void process();
+    using Report = std::array<uint8_t, 64>;
 
-    // Called when USB receives a FIDO2 packet
-    void onPacket(const uint8_t* data, size_t length);
-
-    // Send response to computer
-    bool sendPacket(const uint8_t* data, size_t length);
+    static bool begin();
+    static bool receive(Report& report);
+    static bool send(const Report& report);
 };

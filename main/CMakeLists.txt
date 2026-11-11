@@ -7,6 +7,10 @@ idf_component_register(SRCS "main.cpp" "app_events.cpp" "app_event_loop.cpp" "Co
                     PRIV_REQUIRES HomeSpan pn532_hal pn7160 DigitalDoorKey esp_https_server mqtt libsodium
                     msgpack-c json loggable loggable_espidf esp_wifi dns_server esp_driver_gpio nvs_sec_provider)
 
+if(CONFIG_IDF_TARGET_ESP32S3)
+    target_sources(${COMPONENT_LIB} PRIVATE "PasskeyUsb.cpp")
+endif()
+
 if(CONFIG_NVS_SEC_KEY_PROTECT_USING_FLASH_ENC)
     target_link_libraries(${COMPONENT_LIB} PRIVATE "-u nvs_sec_early_init")
 endif()

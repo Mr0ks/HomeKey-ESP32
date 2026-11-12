@@ -96,47 +96,7 @@
 						d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
 					/>
 				</svg>
-				Info
-			</a>
-		</li>
-		<li class="my-1" role="menuitem">
-			<a href={p('/mqtt')} class="text-lg flex items-center" {@attach isActiveLink({ className: 'bg-neutral' })}>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke-width="1.5"
-					stroke="currentColor"
-					class="w-6 mr-1"
-					aria-hidden="true"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						d="M9.348 14.652a3.75 3.75 0 0 1 0-5.304m5.304 0a3.75 3.75 0 0 1 0 5.304m-7.425 2.121a6.75 6.75 0 0 1 0-9.546m9.546 0a6.75 6.75 0 0 1 0 9.546M5.106 18.894c-3.808-3.807-3.808-9.98 0-13.788m13.788 0c3.808 3.807 3.808 9.98 0 13.788M12 12h.008v.008H12V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-					/>
-				</svg>
-				MQTT
-			</a>
-		</li>
-		<li class="my-1" role="menuitem">
-			<a href={p('/actions')} class="text-lg flex items-center" {@attach isActiveLink({ className: 'bg-neutral' })}>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="h-6 w-6 mr-1">
-          <path fill-rule="evenodd" d="M9.58 1.077a.75.75 0 0 1 .405.82L9.165 6h4.085a.75.75 0 0 1 .567 1.241l-6.5 7.5a.75.75 0 0 1-1.302-.638L6.835 10H2.75a.75.75 0 0 1-.567-1.241l6.5-7.5a.75.75 0 0 1 .897-.182Z" clip-rule="evenodd" />
-        </svg>
-				Actions
-			</a>
-		</li>
-		<li class="my-1" role="menuitem">
-			<a href={p('/automations')} class="text-lg flex items-center" {@attach isActiveLink({ className: 'bg-neutral' })}>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="h-6 w-6 mr-1" aria-hidden="true">
-          <circle cx="8" cy="3.25" r="2" />
-          <circle cx="3.25" cy="12.5" r="2" />
-          <circle cx="12.75" cy="12.5" r="2" />
-          <path d="M7.4 5.1 4 10.4M8.6 5.1 12 10.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none" />
-          <circle cx="8" cy="3.25" r="0.6" fill="none" />
-        </svg>
-				Automations
+				Passkeys
 			</a>
 		</li>
 		<li class="my-1" role="menuitem">

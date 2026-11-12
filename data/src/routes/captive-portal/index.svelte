@@ -52,7 +52,14 @@
 		return /^\d{8}$/.test(code);
 	}
 
+	let dashboardUsername = $state('');
+	let dashboardPassword = $state('');
+
 	function validateForm(): string | null {
+		if (!/^[a-zA-Z0-9_.-]{3,32}$/.test(dashboardUsername) ||
+			dashboardPassword.length < 12 || dashboardPassword.length > 64) {
+			return 'Choose a dashboard username (3-32 letters, numbers, dots, dashes or underscores) and a password of 12-64 characters.';
+		}
 		// WiFi is only required if Ethernet is not enabled
 		if (!config.ethernetEnabled) {
 			if (!config.wifiSsid || config.wifiSsid.length === 0) {
@@ -197,7 +204,7 @@
 				delete payload.nfcVenPin;
 			}
 
-			const result = await saveCaptivePortalConfig(payload);
+			const result = await saveCaptivePortalConfig({ ...payload, webUsername: dashboardUsername, webPassword: dashboardPassword, webAuthEnabled: true });
 			if (result.success) {
 				acquiredIP = result.data.ip_addr;
 				saveMessage = result.message;
@@ -238,6 +245,13 @@
 				Enter your WiFi credentials and device settings to get started.
 			</p>
 			<form onsubmit={handleSubmit} class="space-y-4">
+				<fieldset class="grid gap-3 rounded-box border border-base-300 p-4">
+					<legend class="px-2 font-semibold">Dashboard login</legend>
+					<label for="dashboardUsername">Username</label>
+					<input id="dashboardUsername" class="input w-full" bind:value={dashboardUsername} autocomplete="username" required />
+					<label for="dashboardPassword">Password</label>
+					<input id="dashboardPassword" class="input w-full" type="password" bind:value={dashboardPassword} autocomplete="new-password" minlength="12" maxlength="64" required />
+				</fieldset>
 				<!-- Tabs -->
 				<div class="flex bg-base-300 p-1 rounded-xl gap-1 mb-4">
 					<button

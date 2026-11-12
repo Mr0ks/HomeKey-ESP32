@@ -1,3 +1,4 @@
+#include <string_view>
 // ============================================================================
 // WebServerManager.cpp - ESP32 Web Server Implementation
 // ============================================================================
@@ -1766,6 +1767,21 @@ esp_err_t WebServerManager::handleSaveCaptivePortalConfig(httpd_req_t *req) {
     httpd_resp_send(req, response.c_str(), HTTPD_RESP_USE_STRLEN);
     return ESP_FAIL;
   }
+
+#if CONFIG_IDF_TARGET_ESP32S3
+  const char* username = cJSON_GetStringValue(cJSON_GetObjectItem(obj.get(), "webUsername"));
+  const char* webPassword = cJSON_GetStringValue(cJSON_GetObjectItem(obj.get(), "webPassword"));
+  const std::string_view user = username ? username : "";
+  const std::string_view passwordValue = webPassword ? webPassword : "";
+  if (user.size() < 3 || user.size() > 32 ||
+      user.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-") != std::string_view::npos ||
+      passwordValue.size() < 12 || passwordValue.size() > 64 ||
+      !cJSON_IsTrue(cJSON_GetObjectItem(obj.get(), "webAuthEnabled"))) {
+    httpd_resp_set_status(req, "400 Bad Request");
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_sendstr(req, "{\"success\":false,\"error\":\"Create a dashboard username and password\"}");
+  }
+#endif
 
   std::string ssid;
   std::string password;

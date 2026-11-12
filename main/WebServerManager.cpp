@@ -1,3 +1,6 @@
+#if CONFIG_IDF_TARGET_ESP32S3
+#include "PasskeyAuthenticator.hpp"
+#endif
 #include <string_view>
 // ============================================================================
 // WebServerManager.cpp - ESP32 Web Server Implementation
@@ -777,6 +780,17 @@ esp_err_t WebServerManager::handleGetConfig(httpd_req_t *req) {
   } else if (type == "automation"){
     std::string s = instance->m_configManager.serializeToJson<espConfig::automation_config_t>();
     dataGuard.reset(cJSON_Parse(s.c_str()));
+#if CONFIG_IDF_TARGET_ESP32S3
+  } else if (type == "passkeys") {
+    if (!instance->m_configManager.getConfig<espConfig::misc_config_t>().webAuthEnabled) {
+      return sendJsonError(req, "Enable dashboard authentication in Settings to list passkeys");
+    }
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    dataGuard.reset(cJSON_CreateArray());
+    if (!dataGuard || !PasskeyAuthenticator::listCredentials(dataGuard.get())) {
+      return sendJsonError(req, "Credential storage is unavailable");
+    }
+#endif
   } else if (type == "hkinfo") {
     const auto readerData = instance->m_readerDataManager.snapshot();
     JsonGuard hkInfo(cJSON_CreateObject());

@@ -4,6 +4,8 @@
 #include "PasskeyGate.h"
 #include "cbor.h"
 #include "esp_random.h"
+#include "esp_log.h"
+#include <atomic>
 #include "freertos/task.h"
 #include "nvs.h"
 #include "mbedtls/aes.h"
@@ -39,6 +41,7 @@ struct Credential {
 };
 
 nvs_handle_t store;
+std::atomic_bool ready{false};
 Ctaphid transport(PasskeyUsb::send);
 std::array<uint8_t, 1024> response;
 
@@ -721,6 +724,11 @@ void run(void*) {
                 response[0] = process(request, encoder);
                 const auto length = response[0] ? 1 :
                     1 + cbor_encoder_get_buffer_size(&encoder, response.data() + 1);
+                if (request.front() == 1 || request.front() == 2 || request.front() == 6) {
+                    ESP_LOG_LEVEL(response[0] ? ESP_LOG_WARN : ESP_LOG_INFO,
+                                  "Passkey", "CTAP command 0x%02x returned 0x%02x",
+                                  request.front(), response[0]);
+                }
                 transport.finish({response.data(), length});
             }
         } else {
@@ -746,6 +754,29 @@ bool PasskeyAuthenticator::begin() {
     if (!PasskeyUsb::begin() || xTaskCreate(run, "passkey", 12288, nullptr, 4, nullptr) != pdPASS) {
         nvs_close(store);
         return false;
+    }
+    ready = true;
+    return true;
+}
+
+bool PasskeyAuthenticator::listCredentials(cJSON* array) {
+    if (!ready) return false;
+    for (size_t slot = 0; slot < slotCount; ++slot) {
+        Credential entry{};
+        const auto status = load(slot, entry);
+        mbedtls_platform_zeroize(entry.secret.data(), entry.secret.size());
+        if (status == ESP_ERR_NVS_NOT_FOUND) continue;
+        if (status != ESP_OK) return false;
+        char hashHex[65];
+        for (size_t i = 0; i < entry.rpHash.size(); ++i) {
+            snprintf(hashHex + i * 2, 3, "%02x", unsigned(entry.rpHash[i]));
+        }
+        auto* row = cJSON_CreateObject();
+        if (!row) return false;
+        cJSON_AddItemToArray(array, row);
+        if (!cJSON_AddNumberToObject(row, "slot", slot + 1) ||
+            !cJSON_AddStringToObject(row, "siteHash", hashHex) ||
+            !cJSON_AddBoolToObject(row, "discoverable", entry.discoverable)) return false;
     }
     return true;
 }

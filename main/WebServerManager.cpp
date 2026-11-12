@@ -1,3 +1,4 @@
+#include "sdkconfig.h"
 #if CONFIG_IDF_TARGET_ESP32S3
 #include "PasskeyAuthenticator.hpp"
 #endif

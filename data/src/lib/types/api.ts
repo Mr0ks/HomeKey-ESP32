@@ -81,6 +81,9 @@ export interface MqttConfig {
  * @type {MiscConfig}
  */
 export interface CaptivePortalConfig {
+  webUsername?: string;
+  webPassword?: string;
+  webAuthEnabled?: boolean;
   /** WiFi SSID to connect to */
   wifiSsid: string;
   /** WiFi password */

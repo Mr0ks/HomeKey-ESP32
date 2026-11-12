@@ -497,6 +497,10 @@ void HardwareManager::initiator_task() {
  * If a GPIO action pin is configured the function sets that pin to the configured lock or unlock level and publishes an EventLockState whose `currentState` equals the received state, `targetState` is `UNKNOWN`, and `source` is `INTERNAL` to the lock update topic. If no action pin is configured (pin value 255), the command is ignored.
  */
 void HardwareManager::applyLockState(int receivedState) {
+#if CONFIG_IDF_TARGET_ESP32S3
+    // The HomeKit accessory enrolls Home Key for passkeys. Never drive a lock relay.
+    return;
+#endif
     if (m_miscConfig.gpioActionPin == 255) {
         ESP_LOGI(TAG, "Received lock command but no action pin is configured.");
         return;

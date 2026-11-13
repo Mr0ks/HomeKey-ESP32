@@ -1,10 +1,37 @@
 <script lang="ts">
     import { onMount } from "svelte";
+    import PairingQR from "$lib/components/PairingQR.svelte";
     import HKInfo from '$lib/components/HKInfo.svelte';
     import { route } from 'sv-router/generated';
     let entries = $state<{ slot: number; siteHash: string; discoverable: boolean }[]>([]);
     let loading = $state(true);
     let error = $state('');
+    let setupCode = $state('');
+    let pairingError = $state('');
+    let enrolled = $state(false);
+    let checking = $state(true);
+
+    async function checkPairing() {
+        checking = true;
+        pairingError = '';
+        try {
+            const info = await fetch('/config?type=hkinfo', { cache: 'no-store' }).then(r => r.json());
+            if (!info.success) throw new Error(info.error);
+            enrolled = info.data.issuers.some((issuer: { endpoints: unknown[] }) => issuer.endpoints.length > 0);
+            if (enrolled) {
+                setupCode = '';
+                await refresh();
+            } else {
+                const settings = await fetch('/config?type=misc', { cache: 'no-store' }).then(r => r.json());
+                if (!settings.success) throw new Error(settings.error);
+                setupCode = settings.data.setupCode;
+            }
+        } catch (e) {
+            pairingError = e instanceof Error ? e.message : 'Unable to check Apple Home setup.';
+        } finally {
+            checking = false;
+        }
+    }
     async function refresh() {
         loading = true;
         error = '';
@@ -18,9 +45,23 @@
             loading = false;
         }
     }
-    onMount(() => { void refresh(); });
+    onMount(() => { void checkPairing(); });
 </script>
 
+{#if checking || !enrolled}
+<section class="mx-auto max-w-2xl py-8">
+    <h1 class="text-3xl font-bold">Add to Apple Home</h1>
+    {#if pairingError}<p class="mt-3 text-error" role="alert">{pairingError}</p>{/if}
+    {#if checking}
+        <p class="mt-3">Checking Home Key enrollment...</p>
+    {:else}
+        <p class="mt-3">On your iPhone, open Home and choose Add Accessory. Scan the QR code or enter the setup code manually.</p>
+        {#if setupCode}<PairingQR {setupCode} showNfcSetup />{/if}
+        <p class="mt-3">After your Home Key appears in Wallet, check pairing to open the passkey dashboard.</p>
+        <button class="btn btn-primary mt-4" onclick={checkPairing}>Check pairing</button>
+    {/if}
+</section>
+{:else}
 <section class="mx-auto max-w-4xl py-8">
     <h1 class="text-3xl font-bold">Passkey security key</h1>
     <p class="mt-2 text-base-content/70">Connect your ESP32 by USB and select Security key when a website asks where to save or use a passkey.</p>
@@ -61,3 +102,5 @@
 </section>
 
 <HKInfo hkInfo={route.meta.homeData?.hkInfo} error={route.meta.homeData?.error} />
+
+{/if}

@@ -8,9 +8,10 @@
 		setupId?: string;
 		/** HAP accessory category. HomeKey-ESP32 registers as Category::Locks = 6. */
 		category?: number;
+		showNfcSetup?: boolean;
 	}
 
-	let { setupCode, setupId = 'HSPN', category = 6 }: Props = $props();
+	let { setupCode, setupId = 'HSPN', category = 6, showNfcSetup = false }: Props = $props();
 
 	// HAP setup payload, per the HomeKit Accessory Protocol specification:
 	//
@@ -25,13 +26,13 @@
 	//
 	// BigInt is required: the payload exceeds 32 bits, and shifting past bit 31
 	// with normal JS numbers silently wraps.
-	const payloadUri = $derived.by(() => {
+	function setupPayload(flags: bigint) {
 		const digits = (setupCode ?? '').replace(/\D/g, '');
 		if (digits.length !== 8) return null;
 
 		const code = BigInt(digits);
 		const value =
-			(BigInt(category) << 31n) | (2n << 27n) | code;
+			(BigInt(category) << 31n) | (flags << 27n) | code;
 
 		let encoded = '';
 		let n = value;
@@ -43,7 +44,9 @@
 		encoded = encoded.padStart(9, '0');
 
 		return `X-HM://${encoded}${setupId}`;
-	});
+	}
+	const payloadUri = $derived(setupPayload(2n));
+	const nfcUri = $derived(setupPayload(3n));
 
 	const svg = $derived.by(() => {
 		if (!payloadUri) return null;
@@ -87,3 +90,11 @@
 		</p>
 	{/if}
 </div>
+
+{#if showNfcSetup && nfcUri}
+    <details class="mt-4 rounded-lg border border-base-300 p-4">
+        <summary class="cursor-pointer font-medium">Hold iPhone near a setup tag</summary>
+        <p class="mt-2 text-sm">This option uses a separate programmable NFC tag. Write the following value as an NDEF URI record, then hold your iPhone near that tag in Add Accessory.</p>
+        <input class="input mt-2 w-full font-mono" aria-label="NFC setup URI" readonly value={nfcUri} />
+    </details>
+{/if}

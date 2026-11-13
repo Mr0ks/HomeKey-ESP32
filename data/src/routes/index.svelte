@@ -6,32 +6,6 @@
     let entries = $state<{ slot: number; siteHash: string; discoverable: boolean }[]>([]);
     let loading = $state(true);
     let error = $state('');
-    let setupCode = $state('');
-    let pairingError = $state('');
-    let enrolled = $state(false);
-    let checking = $state(true);
-
-    async function checkPairing() {
-        checking = true;
-        pairingError = '';
-        try {
-            const info = await fetch('/config?type=hkinfo', { cache: 'no-store' }).then(r => r.json());
-            if (!info.success) throw new Error(info.error);
-            enrolled = info.data.issuers.some((issuer: { endpoints: unknown[] }) => issuer.endpoints.length > 0);
-            if (enrolled) {
-                setupCode = '';
-                await refresh();
-            } else {
-                const settings = await fetch('/config?type=misc', { cache: 'no-store' }).then(r => r.json());
-                if (!settings.success) throw new Error(settings.error);
-                setupCode = settings.data.setupCode;
-            }
-        } catch (e) {
-            pairingError = e instanceof Error ? e.message : 'Unable to check Apple Home setup.';
-        } finally {
-            checking = false;
-        }
-    }
     async function refresh() {
         loading = true;
         error = '';
@@ -45,26 +19,56 @@
             loading = false;
         }
     }
-    onMount(() => { void checkPairing(); });
+    let pairingDialog: HTMLDialogElement;
+    let setupCode = $state('');
+    let pairingError = $state('');
+    const dismissalKey = 'apple-home-pairing-dismissed';
+
+    async function openPairing() {
+        setupCode = '';
+        pairingError = '';
+        if (!pairingDialog.open) pairingDialog.showModal();
+        try {
+            const result = await fetch('/config?type=misc', { cache: 'no-store' }).then(r => r.json());
+            if (!result.success || !result.data?.setupCode) {
+                throw new Error(result.error || 'No setup code is available.');
+            }
+            setupCode = result.data.setupCode;
+        } catch (e) {
+            pairingError = e instanceof Error ? e.message : 'Unable to load the setup code.';
+        }
+    }
+
+    onMount(() => {
+        void refresh();
+        const info = route.meta.homeData?.hkInfo;
+        if (info && !info.issuers?.some(issuer => issuer.endpoints?.length) &&
+            !sessionStorage.getItem(dismissalKey)) {
+            void openPairing();
+        }
+    });
 </script>
 
-{#if checking || !enrolled}
-<section class="mx-auto max-w-2xl py-8">
-    <h1 class="text-3xl font-bold">Add to Apple Home</h1>
-    {#if pairingError}<p class="mt-3 text-error" role="alert">{pairingError}</p>{/if}
-    {#if checking}
-        <p class="mt-3">Checking Home Key enrollment...</p>
-    {:else}
-        <p class="mt-3">On your iPhone, open Home and choose Add Accessory. Scan the QR code or enter the setup code manually.</p>
-        {#if setupCode}<PairingQR {setupCode} showNfcSetup />{/if}
-        <p class="mt-3">After your Home Key appears in Wallet, check pairing to open the passkey dashboard.</p>
-        <button class="btn btn-primary mt-4" onclick={checkPairing}>Check pairing</button>
-    {/if}
-</section>
-{:else}
+<dialog bind:this={pairingDialog} class="modal" aria-labelledby="pairing-title"
+    onclose={() => sessionStorage.setItem(dismissalKey, '1')}>
+    <div class="modal-box">
+        <h2 id="pairing-title" class="text-xl font-bold">Add to Apple Home</h2>
+        <p class="my-3">On your iPhone, open Home, tap +, and choose Add Accessory. Scan the QR code below. If this dashboard is open on your iPhone, use the setup code under More options.</p>
+        {#if pairingError}
+            <p role="alert" class="text-error">{pairingError}</p>
+        {:else if setupCode}
+            <PairingQR {setupCode} />
+        {:else}
+            <p role="status">Loading setup code...</p>
+        {/if}
+        <form method="dialog" class="modal-action"><button class="btn">Close</button></form>
+    </div>
+</dialog>
+
 <section class="mx-auto max-w-4xl py-8">
     <h1 class="text-3xl font-bold">Passkey security key</h1>
     <p class="mt-2 text-base-content/70">Connect your ESP32 by USB and select Security key when a website asks where to save or use a passkey.</p>
+    <button class="btn mt-4" onclick={openPairing}>Add to Apple Home</button>
     <div class="mt-6 grid gap-4 md:grid-cols-2">
         <article class="rounded-xl border border-base-300 bg-base-200 p-5">
             <h2 class="font-semibold">Security-key PIN</h2>
@@ -102,5 +106,3 @@
 </section>
 
 <HKInfo hkInfo={route.meta.homeData?.hkInfo} error={route.meta.homeData?.error} />
-
-{/if}

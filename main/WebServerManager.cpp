@@ -1720,6 +1720,8 @@ void WebServerManager::captivePortalSaveTask(void *pvParameters) {
     httpd_req_async_handler_complete(params->req);
 
     delete params;
+    vTaskDelay(pdMS_TO_TICKS(2500));
+    esp_restart();
   } else {
     httpd_resp_set_status(params->req, "400 Bad Request");
     httpd_resp_set_type(params->req, "application/json");
@@ -1790,7 +1792,7 @@ esp_err_t WebServerManager::handleSaveCaptivePortalConfig(httpd_req_t *req) {
   const std::string_view passwordValue = webPassword ? webPassword : "";
   if (user.size() < 3 || user.size() > 32 ||
       user.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-") != std::string_view::npos ||
-      passwordValue.size() < 12 || passwordValue.size() > 64 ||
+      passwordValue.empty() || passwordValue.size() > 64 ||
       !cJSON_IsTrue(cJSON_GetObjectItem(obj.get(), "webAuthEnabled"))) {
     httpd_resp_set_status(req, "400 Bad Request");
     httpd_resp_set_type(req, "application/json");

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { route } from 'sv-router/generated';
-	import { saveCaptivePortalConfig, rebootDevice, scanWiFi } from '$lib/services/api';
+	import { saveCaptivePortalConfig, scanWiFi } from '$lib/services/api';
 	import type { CaptivePortalConfig, WiFiNetwork, EthConfig, NfcGpioPinsPreset } from '$lib/types/api';
 	import HardwareConfig from '$lib/components/HardwareConfig.svelte';
     import { diff } from '$lib/utils/objDiff';
@@ -57,8 +57,8 @@
 
 	function validateForm(): string | null {
 		if (!/^[a-zA-Z0-9_.-]{3,32}$/.test(dashboardUsername) ||
-			dashboardPassword.length < 12 || dashboardPassword.length > 64) {
-			return 'Choose a dashboard username (3-32 letters, numbers, dots, dashes or underscores) and a password of 12-64 characters.';
+			dashboardPassword.length === 0 || dashboardPassword.length > 64) {
+			return 'Choose a dashboard username (3-32 letters, numbers, dots, dashes or underscores) and a password of 1-64 characters.';
 		}
 		// WiFi is only required if Ethernet is not enabled
 		if (!config.ethernetEnabled) {
@@ -209,10 +209,7 @@
 				acquiredIP = result.data.ip_addr;
 				saveMessage = result.message;
 				saved = true;
-				// Trigger reboot after short delay
-				setTimeout(async () => {
-					await rebootDevice();
-				}, 1000);
+
 			} else {
 				error = result.error || 'Failed to save configuration';
 			}
@@ -234,6 +231,10 @@
 			<div>
 				<span class="font-bold">{config.ethernetEnabled ? 'Ethernet' : 'WiFi'} connection successful!</span>
         <div class="font-bold">IP Address: {acquiredIP}</div>
+                <p>Reconnect your phone or computer to your home Wi-Fi after the ESP32 restarts.</p>
+                {#if acquiredIP && acquiredIP !== '0.0.0.0'}
+                    <a class="link font-semibold" href={`http://${acquiredIP}/`}>Open dashboard</a>
+                {/if}
 				{#if saveMessage}
 				<div class="text-sm">{saveMessage}</div>
 				{/if}
@@ -250,7 +251,7 @@
 					<label for="dashboardUsername">Username</label>
 					<input id="dashboardUsername" class="input w-full" bind:value={dashboardUsername} autocomplete="username" required />
 					<label for="dashboardPassword">Password</label>
-					<input id="dashboardPassword" class="input w-full" type="password" bind:value={dashboardPassword} autocomplete="new-password" minlength="12" maxlength="64" required />
+					<input id="dashboardPassword" class="input w-full" type="password" bind:value={dashboardPassword} autocomplete="new-password" maxlength="64" required />
 				</fieldset>
 				<!-- Tabs -->
 				<div class="flex bg-base-300 p-1 rounded-xl gap-1 mb-4">

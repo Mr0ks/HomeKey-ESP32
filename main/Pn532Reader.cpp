@@ -89,6 +89,8 @@ bool Pn532Reader::pollForTag(std::vector<uint8_t>& uid,
                              uint8_t& sak,
                              uint32_t timeoutMs) {
     if (!m_frontend) return false;
+    servePairing();
+    if (!m_frontend) return false;
     uint8_t sel_res = 0;
     m_pollRes.clear();
     (void)m_frontend->InCommunicateThru(m_ecpData, m_pollRes, 50);

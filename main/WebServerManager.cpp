@@ -1,3 +1,4 @@
+#include "Pn532Reader.hpp"
 #include "sdkconfig.h"
 #if CONFIG_IDF_TARGET_ESP32S3
 #include "PasskeyAuthenticator.hpp"
@@ -497,6 +498,37 @@ void WebServerManager::setupRoutes() {
 
       // Configuration endpoints
       {"/config", HTTP_GET, handleGetConfig, this},
+      {"/pairing/nfc", HTTP_POST, [](httpd_req_t* req) -> esp_err_t {
+        auto* self = getInstance(req);
+        if (!self || !self->basicAuth(req)) return sendAuthFailure(req);
+        if (!httpd_req_get_hdr_value_len(req, "X-HomeKey-Pairing")) {
+          return sendJsonError(req, "Missing pairing request header");
+        }
+        auto config = self->m_configManager.getConfig<espConfig::misc_config_t>();
+        if (config.nfcReaderType != 0 || !self->m_nfcManager || !self->m_nfcManager->isConnected()) {
+          return sendJsonError(req, "PN532 is unavailable");
+        }
+        uint64_t value = (uint64_t(6) << 31) | (uint64_t(3) << 27);
+        unsigned code = 0;
+        unsigned digits = 0;
+        for (char c : config.setupCode) {
+          if (c == '-') continue;
+          if (c < '0' || c > '9' || ++digits > 8) return sendJsonError(req, "Invalid setup code");
+          code = code * 10 + (c - '0');
+        }
+        if (digits != 8) return sendJsonError(req, "Invalid setup code");
+        value |= code;
+        std::string payload = "X-HM://000000000HSPN";
+        for (int i = 15; i >= 7; --i) {
+          payload[i] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[value % 36];
+          value /= 36;
+        }
+        if (!Pn532Reader::requestPairing(std::move(payload))) {
+          return sendJsonError(req, "Pairing is already queued");
+        }
+        httpd_resp_set_type(req, "application/json");
+        return httpd_resp_sendstr(req, "{\"success\":true}");
+      }, this},
       {"/config/clear", HTTP_POST, handleClearConfig, this},
       {"/config/save", HTTP_POST, handleSaveConfig, this},
       {"/eth_get_config", HTTP_GET, handleGetEthConfig, this},

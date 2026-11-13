@@ -21,6 +21,22 @@
     }
     let pairingDialog: HTMLDialogElement;
     let setupCode = $state('');
+    let nfcMessage = $state('');
+    let nfcUntil = 0;
+    async function startNfcPairing() {
+        if (Date.now() < nfcUntil) return;
+        nfcUntil = Date.now() + 30_000;
+        try {
+            const result = await fetch('/pairing/nfc', {
+                method: 'POST', headers: { 'X-HomeKey-Pairing': '1' }
+            }).then(r => r.json());
+            if (!result.success) throw new Error(result.error);
+            nfcMessage = 'Open Apple Home, choose Add Accessory, and hold the top of your iPhone near the PN532 within 30 seconds.';
+        } catch (e) {
+            nfcUntil = 0;
+            nfcMessage = e instanceof Error ? e.message : 'Could not start NFC pairing.';
+        }
+    }
     let pairingError = $state('');
     const dismissalKey = 'apple-home-pairing-dismissed';
 
@@ -61,6 +77,8 @@
         {:else}
             <p role="status">Loading setup code...</p>
         {/if}
+        <button class="btn btn-primary mt-4" onclick={startNfcPairing}>Start NFC pairing</button>
+        {#if nfcMessage}<p class="mt-2" role="status">{nfcMessage}</p>{/if}
         <form method="dialog" class="modal-action"><button class="btn">Close</button></form>
     </div>
 </dialog>

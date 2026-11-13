@@ -8,6 +8,7 @@
 #include <array>
 #include <cstdint>
 #include <vector>
+#include <string>
 
 /**
  * @brief PN532 SPI implementation of the INfcReader interface.
@@ -46,7 +47,9 @@ public:
                       uint32_t timeoutMs) override;
     bool healthCheck() override;
     bool updateECP() override { return true;};
+    static bool requestPairing(std::string uri);
 private:
+    void servePairing();
     const std::array<uint8_t, 18> &m_ecpData;
     std::array<uint8_t, 4> m_gpioPins;
     pn532::SpiTransport* m_transport = nullptr;
